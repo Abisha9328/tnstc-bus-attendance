@@ -4,6 +4,9 @@
 🚍 A simple bus attendance tracking system to manage passenger or employee attendance records efficiently.
 
 ---
+__Demo__
+Live app: https://tnstc-bus-attendance-5an4vynjviaq5jpckdaqqn.streamlit.app/
+
 
 ## 📂 Project Overview
 
