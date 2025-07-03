@@ -173,3 +173,7 @@ def update_location(data: LocationUpdate):
             bus["status"] = data.status
             return {"message": "Location updated successfully."}
     return {"error": "Bus not found."}
+@app.get("/")
+def root():
+    return {"message": "✅ TNSTC API is live and running!"}
+
