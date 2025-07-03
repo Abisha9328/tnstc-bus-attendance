@@ -3,6 +3,7 @@ import requests
 from datetime import datetime
 from geopy.distance import geodesic
 import pandas as pd
+
 # ================================
 # Stop Coordinates Dictionary
 # ================================
@@ -41,7 +42,9 @@ stop_coords = {
     "Kaliyakkavilai": (8.1000, 77.5200),
     "Kottarakkara": (8.1500, 77.5500)
 }
-import requests
+
+# BASE URL of your deployed backend
+BASE_URL = "https://tnstc-bus-attendance.onrender.com"
 
 st.set_page_config(page_title="TNSTC Bus Attendance")
 
@@ -49,7 +52,7 @@ st.title("🚌 TNSTC Live Bus Attendance")
 
 # Load buses ONCE
 try:
-    response = requests.get("http://127.0.0.1:8000/buses")
+    response = requests.get(f"{BASE_URL}/buses")
     buses = response.json()
 except Exception:
     st.error("⚠️ Could not load buses. Is the backend running?")
@@ -99,25 +102,22 @@ with tab1:
                 "gender": gender,
                 "timestamp": datetime.utcnow().isoformat(),
                 "status": status,
-                "bus_lat": selected_bus["current_lat"],  # Capture bus position
+                "bus_lat": selected_bus["current_lat"],
                 "bus_lon": selected_bus["current_lon"]
             }
 
             try:
-                res = requests.post("http://127.0.0.1:8000/attendance", json=payload)
+                res = requests.post(f"{BASE_URL}/attendance", json=payload)
                 if res.status_code == 200:
                     st.success("✅ Attendance recorded successfully.")
 
                     try:
-                        bus_location = (selected_bus["current_lat"], selected_bus["current_lon"])
                         stop_location = stop_coords.get(stop_name)
-
                         if stop_location:
-                            # Calculate ETA using geodesic distance
-                            from geopy.distance import geodesic
-                            bus_location = (selected_bus["current_lat"], selected_bus["current_lon"])
-                            stop_location = stop_coords.get(stop_name)
-                            distance_km = geodesic(bus_location, stop_location).km
+                            distance_km = geodesic(
+                                (selected_bus["current_lat"], selected_bus["current_lon"]),
+                                stop_location
+                            ).km
                             eta_minutes = distance_km / 40 * 60
                             st.info(
                                 f"🚍 Estimated arrival at **{stop_name}** in ~{int(eta_minutes)} minutes "
@@ -149,7 +149,7 @@ with tab2:
     st.write(f"📍 **Selected Bus:** {selected_bus_id_conductor}")
 
     try:
-        res = requests.get(f"http://127.0.0.1:8000/attendance/{selected_bus_id_conductor}")
+        res = requests.get(f"{BASE_URL}/attendance/{selected_bus_id_conductor}")
         if res.status_code == 200:
             records = res.json()
             if records:
@@ -188,9 +188,6 @@ with tab2:
 # ------------------------------
 # Revenue Dashboard Tab
 # ------------------------------
-# ------------------------------
-# Revenue Dashboard Tab
-# ------------------------------
 with tab3:
     from datetime import timedelta, datetime as dt
     import plotly.express as px
@@ -200,7 +197,7 @@ with tab3:
     all_records = []
     for bus in buses:
         try:
-            res = requests.get(f"http://127.0.0.1:8000/attendance/{bus['bus_id']}")
+            res = requests.get(f"{BASE_URL}/attendance/{bus['bus_id']}")
             if res.status_code == 200:
                 records = res.json()
                 for r in records:
@@ -219,7 +216,6 @@ with tab3:
     df["date"] = df["timestamp"].dt.date
     today = dt.utcnow().date()
 
-    # Calculate fare per passenger based on distance
     fare_per_km = 2.0
 
     def calculate_fare(row):
@@ -236,7 +232,6 @@ with tab3:
 
     st.markdown("### 📅 Last 7 Days Revenue Overview")
 
-    # Daily revenue
     daily_summary = (
         df.groupby("date")
         .agg(
